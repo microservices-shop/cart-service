@@ -1,0 +1,38 @@
+[project]
+name = "cart-service"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "fastapi>=0.132.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.13.1",
+    "sqlalchemy[asyncio]>=2.0.46",
+    "structlog>=25.5.0",
+    "uvicorn>=0.41.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.2",
+]
+
+
+[tool.ruff]
+line-length = 88
+exclude = [
+  ".git",
+  ".venv",
+  "build",
+  "dist",
+  "tests/data",
+  "notes",
+  "__pycache__"
+]
+
+[tool.ruff.isort]
+known-first-party = ["src"]
+
