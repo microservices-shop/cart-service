@@ -2,10 +2,9 @@
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
 from src.api.dependencies import CartServiceDep, UserIdDep
-from src.exceptions import NotFoundException, ServiceUnavailableException
 from src.schemas.cart import (
     AddToCartSchema,
     CartItemResponseSchema,
@@ -25,7 +24,16 @@ async def get_cart(
     return await service.get_cart(user_id)
 
 
-@router.post("/items", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/items",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Товар не найден в Product Service"},
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Product Service недоступен"
+        },
+    },
+)
 async def add_item(
     body: AddToCartSchema,
     user_id: UserIdDep,
@@ -40,17 +48,18 @@ async def add_item(
         HTTPException: 404, если товар не найден в Product Service.
         HTTPException: 503, если Product Service недоступен.
     """
-    try:
-        return await service.add_item(user_id, body.product_id, body.quantity)
-    except NotFoundException as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.detail)
-    except ServiceUnavailableException as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=e.detail
-        )
+    return await service.add_item(user_id, body.product_id, body.quantity)
 
 
-@router.patch("/items/{item_id}", status_code=status.HTTP_200_OK)
+@router.patch(
+    "/items/{item_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Позиция не найдена или не принадлежит пользователю"
+        },
+    },
+)
 async def update_quantity(
     item_id: uuid.UUID,
     body: UpdateQuantitySchema,
@@ -62,13 +71,18 @@ async def update_quantity(
     Raises:
         HTTPException: 404, если позиция не найдена или не принадлежит пользователю.
     """
-    try:
-        return await service.update_quantity(user_id, item_id, body.quantity)
-    except NotFoundException as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.detail)
+    return await service.update_quantity(user_id, item_id, body.quantity)
 
 
-@router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/items/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Позиция не найдена или не принадлежит пользователю"
+        },
+    },
+)
 async def remove_item(
     item_id: uuid.UUID,
     user_id: UserIdDep,
@@ -79,10 +93,7 @@ async def remove_item(
     Raises:
         HTTPException: 404, если позиция не найдена или не принадлежит пользователю.
     """
-    try:
-        await service.remove_item(user_id, item_id)
-    except NotFoundException as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.detail)
+    await service.remove_item(user_id, item_id)
 
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
