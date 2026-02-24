@@ -29,6 +29,11 @@ app.add_middleware(
 
 app.add_middleware(RequestLoggingMiddleware)
 
+# Подключение internal API
+from src.api.internal.router import internal_router
+
+app.include_router(internal_router)
+
 
 @app.get("/health")
 async def health_check():
