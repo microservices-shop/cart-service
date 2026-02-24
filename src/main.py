@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 import structlog
 
 from src.api.v1.router import router as v1_router
+from src.api.internal.router import internal_router
 from src.config import settings
 from src.logger import setup_logging, get_logger
 from src.middleware.request_logger import RequestLoggingMiddleware
@@ -31,7 +32,11 @@ app.add_middleware(
 
 app.add_middleware(RequestLoggingMiddleware)
 
+# Подключение публичного API (v1)
 app.include_router(v1_router)
+
+# Подключение internal API (webhooks, Order Service)
+app.include_router(internal_router)
 
 
 @app.get("/health")
