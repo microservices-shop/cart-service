@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import structlog
 
+from src.api.v1.router import router as v1_router
 from src.config import settings
 from src.logger import setup_logging, get_logger
 from src.middleware.request_logger import RequestLoggingMiddleware
@@ -28,6 +29,8 @@ app.add_middleware(
 
 
 app.add_middleware(RequestLoggingMiddleware)
+
+app.include_router(v1_router)
 
 
 @app.get("/health")
