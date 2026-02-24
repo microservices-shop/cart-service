@@ -26,7 +26,7 @@ class CartItemModel(Base):
         UUID(as_uuid=True), nullable=False, index=True
     )
 
-    product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    product_id: Mapped[int] = mapped_column(Integer, nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     product_name: Mapped[str] = mapped_column(String(255), nullable=False)
     product_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)

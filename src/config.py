@@ -38,6 +38,8 @@ class Settings(BaseSettings):
             f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
+    PRODUCT_SERVICE_URL: str = ""
+
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
 
