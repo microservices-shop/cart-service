@@ -23,10 +23,7 @@ class CartRepository:
     @staticmethod
     async def delete_all(session: AsyncSession, user_id: UUID) -> int:
         """Очистить корзину пользователя. Возвращает количество удалённых строк."""
-        query = (
-            delete(CartItemModel)
-            .where(CartItemModel.user_id == user_id)
-        )
+        query = delete(CartItemModel).where(CartItemModel.user_id == user_id)
         result = await session.execute(query)
         return result.rowcount
 

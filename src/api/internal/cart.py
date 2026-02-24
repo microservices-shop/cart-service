@@ -33,7 +33,9 @@ async def get_cart_internal(
             "product_price": float(item.product_price),
             "product_image": item.product_image,
             "price_changed": item.price_changed,
-            "current_price": float(item.current_price) if item.current_price is not None else None,
+            "current_price": float(item.current_price)
+            if item.current_price is not None
+            else None,
             "out_of_stock": item.out_of_stock,
             "product_deleted": item.product_deleted,
         }
