@@ -9,7 +9,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASS}
       - POSTGRES_DB=${DB_NAME}
     ports:
-      - "5431:5431"
+      - "5435:5432"
     volumes:
       - db_data:/var/lib/postgresql
     healthcheck:
@@ -29,22 +29,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
-  app:
-    build: .
-    container_name: cart_app_dev
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8003 --reload
-    env_file:
-      - .env
-    environment:
-      - DB_HOST=db
-    ports:
-      - "8003:8003"
-    volumes:
-      - .:/app
-    depends_on:
-      migrator:
-        condition: service_completed_successfully
 
 volumes:
   db_data:

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 
 from src.api.dependencies import CartServiceDep
-from src.schemas.internal import ProductUpdatedWebhook
+from src.schemas.internal import ProductUpdatedWebhook, WebhookResponseSchema
 
 router = APIRouter(prefix="/cart/products", tags=["Internal — Product Sync"])
 
@@ -15,7 +15,7 @@ async def product_updated(
     product_id: int,
     data: ProductUpdatedWebhook,
     cart_service: CartServiceDep,
-) -> dict:
+) -> WebhookResponseSchema:
     """
     Webhook от Product Service: товар обновлён.
 
@@ -28,7 +28,7 @@ async def product_updated(
         new_name=data.title,
         new_image=data.image_url,
     )
-    return {"status": "ok", "affected_rows": rows}
+    return WebhookResponseSchema(affected_rows=rows)
 
 
 @router.post(
@@ -39,14 +39,14 @@ async def product_updated(
 async def product_out_of_stock(
     product_id: int,
     cart_service: CartServiceDep,
-) -> dict:
+) -> WebhookResponseSchema:
     """
     Webhook от Product Service: stock товара стал 0.
 
     Устанавливает out_of_stock = true для всех позиций корзины с данным product_id.
     """
     rows = await cart_service.handle_out_of_stock(product_id)
-    return {"status": "ok", "affected_rows": rows}
+    return WebhookResponseSchema(affected_rows=rows)
 
 
 @router.post(
@@ -57,14 +57,14 @@ async def product_out_of_stock(
 async def product_back_in_stock(
     product_id: int,
     cart_service: CartServiceDep,
-) -> dict:
+) -> WebhookResponseSchema:
     """
     Webhook от Product Service: stock товара снова > 0.
 
     Сбрасывает out_of_stock = false для всех позиций корзины с данным product_id.
     """
     rows = await cart_service.handle_back_in_stock(product_id)
-    return {"status": "ok", "affected_rows": rows}
+    return WebhookResponseSchema(affected_rows=rows)
 
 
 @router.post(
@@ -75,11 +75,11 @@ async def product_back_in_stock(
 async def product_deleted(
     product_id: int,
     cart_service: CartServiceDep,
-) -> dict:
+) -> WebhookResponseSchema:
     """
     Webhook от Product Service: товар удалён из каталога.
 
     Устанавливает product_deleted = true для всех позиций корзины с данным product_id.
     """
     rows = await cart_service.handle_product_deleted(product_id)
-    return {"status": "ok", "affected_rows": rows}
+    return WebhookResponseSchema(affected_rows=rows)
