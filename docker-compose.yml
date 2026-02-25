@@ -35,7 +35,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASS}
       - POSTGRES_DB=${DB_NAME}
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
