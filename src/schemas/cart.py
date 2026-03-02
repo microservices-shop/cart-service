@@ -20,6 +20,7 @@ class CartItemResponseSchema(BaseModel):
     id: uuid.UUID = Field(..., description="ID записи корзины")
     product_id: int = Field(..., description="ID товара в Product Service")
     quantity: int = Field(..., description="Количество товара")
+    is_selected: bool = Field(True, description="Выбран ли товар для оформления")
 
     # Снапшот товара на момент добавления
     product_name: str = Field(..., description="Название товара на момент добавления")

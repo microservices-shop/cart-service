@@ -34,6 +34,7 @@ class CartItemModel(Base):
     price_changed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     current_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     out_of_stock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_selected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     product_deleted: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
     )

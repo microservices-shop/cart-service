@@ -1,5 +1,3 @@
-"""Зависимости FastAPI для Cart Service."""
-
 import uuid
 from typing import Annotated
 

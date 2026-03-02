@@ -6,6 +6,7 @@ services:
       - .env
     environment:
       - DB_HOST=cart_db
+      - DB_PORT=5432
     command: [ "alembic", "upgrade", "head" ]
     depends_on:
       db:
@@ -20,6 +21,7 @@ services:
       - .env
     environment:
       - DB_HOST=cart_db
+      - DB_PORT=5432
     ports:
       - "8003:8003"
     depends_on:
