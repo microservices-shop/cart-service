@@ -37,6 +37,9 @@ class CartService:
         total_price = Decimal(0)
         total_items = 0
         for item in items:
+            if item.out_of_stock or item.product_deleted or not item.is_selected:
+                continue
+
             effective_price = (
                 item.current_price
                 if item.price_changed and item.current_price is not None
@@ -92,6 +95,7 @@ class CartService:
             product_name=product.title,
             product_price=Decimal(product.price),
             product_image=product_image,
+            is_selected=True,
         )
         created = await self.repo.create(item)
         await self.session.commit()
@@ -129,6 +133,50 @@ class CartService:
             quantity=quantity,
         )
         return CartItemResponseSchema.model_validate(updated)
+
+    async def change_item_selection(
+        self, user_id: uuid.UUID, item_id: uuid.UUID, is_selected: bool
+    ) -> CartItemResponseSchema:
+        """
+        Изменить статус выбора товара в корзине.
+
+        Raises:
+            NotFoundException: запись не найдена или не принадлежит пользователю
+        """
+        item = await self.repo.get_item(item_id, user_id)
+        if item is None:
+            raise NotFoundException(
+                f"Cart item with id={item_id} not found for user={user_id}"
+            )
+
+        updated = await self.repo.update_selection(item, is_selected)
+        await self.session.commit()
+
+        logger.info(
+            "cart_item_selection_toggled",
+            user_id=str(user_id),
+            item_id=str(item_id),
+            is_selected=is_selected,
+        )
+        return CartItemResponseSchema.model_validate(updated)
+
+    async def select_all(
+        self, user_id: uuid.UUID, is_selected: bool
+    ) -> CartResponseSchema:
+        """Выбрать или снять выбор со всех доступных товаров корзины.
+
+        При is_selected=True игнорирует товары с out_of_stock=True или product_deleted=True.
+        Возвращает обновлённую корзину.
+        """
+        await self.repo.update_selection_for_all(user_id, is_selected)
+        await self.session.commit()
+
+        logger.info(
+            "cart_selection_bulk_updated",
+            user_id=str(user_id),
+            is_selected=is_selected,
+        )
+        return await self.get_cart(user_id)
 
     async def remove_item(self, user_id: uuid.UUID, item_id: uuid.UUID) -> None:
         """

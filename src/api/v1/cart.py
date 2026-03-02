@@ -1,5 +1,3 @@
-"""Публичные эндпоинты корзины пользователя."""
-
 import uuid
 
 from fastapi import APIRouter, status
@@ -9,6 +7,7 @@ from src.schemas.cart import (
     AddToCartSchema,
     CartItemResponseSchema,
     CartResponseSchema,
+    ItemSelectionSchema,
     UpdateQuantitySchema,
 )
 
@@ -72,6 +71,43 @@ async def update_quantity(
         HTTPException: 404, если позиция не найдена или не принадлежит пользователю.
     """
     return await service.update_quantity(user_id, item_id, body.quantity)
+
+
+@router.patch(
+    "/items/{item_id}/select",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Позиция не найдена или не принадлежит пользователю"
+        },
+    },
+)
+async def change_item_selection(
+    item_id: uuid.UUID,
+    body: ItemSelectionSchema,
+    user_id: UserIdDep,
+    service: CartServiceDep,
+) -> CartItemResponseSchema:
+    """Изменить статус выбора товара в корзине (чекбокс).
+
+    Raises:
+        HTTPException: 404, если позиция не найдена или не принадлежит пользователю.
+    """
+    return await service.change_item_selection(user_id, item_id, body.is_selected)
+
+
+@router.patch("/select-all", status_code=status.HTTP_200_OK)
+async def select_all(
+    body: ItemSelectionSchema,
+    user_id: UserIdDep,
+    service: CartServiceDep,
+) -> CartResponseSchema:
+    """Выбрать или снять выбор со всех доступных товаров корзины.
+
+    При is_selected=True недоступные (out_of_stock, product_deleted) товары игнорируются.
+    Возвращает обновлённую корзину с пересчитанной суммой.
+    """
+    return await service.select_all(user_id, body.is_selected)
 
 
 @router.delete(

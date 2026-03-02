@@ -14,6 +14,10 @@ class UpdateQuantitySchema(BaseModel):
     quantity: int = Field(..., description="Новое количество товара", ge=1)
 
 
+class ItemSelectionSchema(BaseModel):
+    is_selected: bool = Field(..., description="Выбран ли товар для оформления заказа")
+
+
 class CartItemResponseSchema(BaseModel):
     """Ответ с данными одного элемента корзины."""
 

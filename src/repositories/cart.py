@@ -59,6 +59,36 @@ class CartRepository:
         await self.session.refresh(item)
         return item
 
+    async def update_selection(
+        self, item: CartItemModel, is_selected: bool
+    ) -> CartItemModel:
+        """Обновление статуса выбора товара."""
+        item.is_selected = is_selected
+        await self.session.flush()
+        await self.session.refresh(item)
+        return item
+
+    async def update_selection_for_all(
+        self, user_id: uuid.UUID, is_selected: bool
+    ) -> int:
+        """Массовое обновление is_selected для всей корзины пользователя.
+
+        При is_selected=True пропускает товары с out_of_stock=True или product_deleted=True.
+        Возвращает количество затронутых строк.
+        """
+        query = update(CartItemModel).where(CartItemModel.user_id == user_id)
+
+        if is_selected:
+            query = query.where(
+                CartItemModel.out_of_stock.is_(False),
+                CartItemModel.product_deleted.is_(False),
+            )
+
+        query = query.values(is_selected=is_selected)
+        result = await self.session.execute(query)
+        await self.session.flush()
+        return result.rowcount
+
     async def delete_item(self, item: CartItemModel) -> None:
         """Удаление одного элемента из корзины."""
         await self.session.delete(item)
@@ -101,10 +131,14 @@ class CartRepository:
 
     async def mark_out_of_stock(self, product_id: int, value: bool) -> int:
         """Установить или сбросить флаг out_of_stock для всех позиций с product_id."""
+        values = {"out_of_stock": value}
+        if value is True:
+            values["is_selected"] = False
+
         query = (
             update(CartItemModel)
             .where(CartItemModel.product_id == product_id)
-            .values(out_of_stock=value)
+            .values(**values)
         )
         result = await self.session.execute(query)
         await self.session.flush()
@@ -115,7 +149,7 @@ class CartRepository:
         query = (
             update(CartItemModel)
             .where(CartItemModel.product_id == product_id)
-            .values(product_deleted=True)
+            .values(product_deleted=True, is_selected=False)
         )
         result = await self.session.execute(query)
         await self.session.flush()
