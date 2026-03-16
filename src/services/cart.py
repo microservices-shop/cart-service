@@ -7,7 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import CartItemModel
 from src.exceptions import NotFoundException
 from src.repositories.cart import CartRepository
-from src.schemas.cart import CartItemResponseSchema, CartResponseSchema
+from src.schemas.cart import (
+    CartItemResponseSchema,
+    CartResponseSchema,
+    CartItemSelectedResponseSchema,
+)
 from src.services.product_client import ProductClient
 
 
@@ -55,6 +59,16 @@ class CartService:
             total_price=total_price,
             total_items=total_items,
         )
+
+    async def get_list_selected_items(
+        self, user_id: uuid.UUID
+    ) -> list[CartItemSelectedResponseSchema]:
+        """Возвращает список выбранных пользователем товаров."""
+        selected_items = await self.repo.get_list_selected_items(user_id)
+        return [
+            CartItemSelectedResponseSchema.model_validate(item)
+            for item in selected_items
+        ]
 
     async def add_item(
         self, user_id: uuid.UUID, product_id: int, quantity: int

@@ -48,6 +48,13 @@ class CartItemResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CartItemSelectedResponseSchema(BaseModel):
+    product_id: int = Field(..., description="ID товара в Product Service")
+    quantity: int = Field(..., description="Количество товара")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CartResponseSchema(BaseModel):
     """Ответ с данными всей корзины пользователя."""
 

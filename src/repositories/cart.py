@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import Row, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import CartItemModel
@@ -31,6 +31,15 @@ class CartRepository:
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def get_list_selected_items(self, user_id: uuid.UUID) -> list[Row]:
+        """Возвращает список выбранных пользователем товаров."""
+        query = select(CartItemModel.product_id, CartItemModel.quantity).where(
+            CartItemModel.user_id == user_id,
+            CartItemModel.is_selected,
+        )
+        result = await self.session.execute(query)
+        return list(result.all())
 
     async def get_by_user_and_product(
         self, user_id: uuid.UUID, product_id: int
