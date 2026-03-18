@@ -1,6 +1,7 @@
+import asyncio
+
 import httpx
 import structlog
-from fastapi import status
 
 from src.config import settings
 from src.exceptions import NotFoundException, ServiceUnavailableException
@@ -8,54 +9,75 @@ from src.schemas.product import ProductResponseSchema
 
 logger = structlog.get_logger(__name__)
 
-# Таймауты: 5 секунд на подключение, 10 на чтение
-_TIMEOUT = httpx.Timeout(timeout=10.0, connect=5.0)
+
+# Параметры ретрая
+_MAX_RETRIES = 3
+_RETRY_BACKOFF_BASE = 0.5  # секунды: 0.5 → 1.0 → 2.0
 
 
 class ProductClient:
     """Клиент для запросов к internal API Product Service."""
 
-    def __init__(self) -> None:
+    def __init__(self, client: httpx.AsyncClient) -> None:
         self._base_url = settings.PRODUCT_SERVICE_URL.rstrip("/")
+        self.client = client
 
     async def get_product(self, product_id: int) -> ProductResponseSchema:
         """
         Получить данные товара из Product Service.
 
         Запрашивает GET /internal/products/{product_id}.
+        При сетевых ошибках выполняет до 3 попыток с экспоненциальным backoff.
         Возвращает ProductResponseSchema.
         """
         url = f"{self._base_url}/internal/products/{product_id}"
+        last_exc: Exception | None = None
 
-        try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-                response = await client.get(url)
+        for attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                response = await self.client.get(url)
 
-            if response.status_code == status.HTTP_404_NOT_FOUND:
-                raise NotFoundException(
-                    f"Product with id={product_id} not found in Product Service"
+                if response.status_code == httpx.codes.NOT_FOUND:
+                    raise NotFoundException(
+                        f"Product with id={product_id} not found in Product Service"
+                    )
+
+                response.raise_for_status()
+                return ProductResponseSchema.model_validate(response.json())
+
+            except NotFoundException:
+                # 404 — детерминированная ошибка, ретрай бессмысленен
+                raise
+
+            except (httpx.ConnectError, httpx.TimeoutException) as exc:
+                last_exc = exc
+                logger.warning(
+                    "product_service_unavailable_retry",
+                    product_id=product_id,
+                    attempt=attempt,
+                    max_retries=_MAX_RETRIES,
+                    error=str(exc),
+                )
+                if attempt < _MAX_RETRIES:
+                    await asyncio.sleep(_RETRY_BACKOFF_BASE * (2 ** (attempt - 1)))
+
+            except httpx.HTTPStatusError as exc:
+                logger.error(
+                    "product_service_error",
+                    product_id=product_id,
+                    status_code=exc.response.status_code,
+                    error=str(exc),
+                )
+                raise ServiceUnavailableException(
+                    f"Product Service returned error: {exc.response.status_code}"
                 )
 
-            response.raise_for_status()
-            return ProductResponseSchema.model_validate(response.json())
-
-        except (httpx.ConnectError, httpx.TimeoutException) as exc:
-            logger.error(
-                "product_service_unavailable",
-                product_id=product_id,
-                error=str(exc),
-            )
-            raise ServiceUnavailableException(
-                "Product Service is temporarily unavailable"
-            ) from exc
-
-        except httpx.HTTPStatusError as exc:
-            logger.error(
-                "product_service_error",
-                product_id=product_id,
-                status_code=exc.response.status_code,
-                error=str(exc),
-            )
-            raise ServiceUnavailableException(
-                f"Product Service returned error: {exc.response.status_code}"
-            ) from exc
+        logger.error(
+            "product_service_unavailable",
+            product_id=product_id,
+            attempts=_MAX_RETRIES,
+            error=str(last_exc),
+        )
+        raise ServiceUnavailableException(
+            f"Product Service is temporarily unavailable: {last_exc}"
+        )

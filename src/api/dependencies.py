@@ -1,11 +1,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.database import async_session_maker
 from src.services.cart import CartService
+from src.services.product_client import ProductClient
 
 
 async def get_db() -> AsyncSession:
@@ -38,9 +39,18 @@ def get_user_id(x_user_id: str | None = Header(None)) -> uuid.UUID:
         )
 
 
-def get_cart_service(session: Annotated[AsyncSession, Depends(get_db)]) -> CartService:
+def get_product_client(request: Request) -> ProductClient:
+    return request.app.state.product_client
+
+
+ProductClientDep = Annotated[ProductClient, Depends(get_product_client)]
+
+
+def get_cart_service(
+    session: Annotated[AsyncSession, Depends(get_db)], product_client: ProductClientDep
+) -> CartService:
     """Фабрика для создания сервиса корзины."""
-    return CartService(session)
+    return CartService(session, product_client)
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_db)]

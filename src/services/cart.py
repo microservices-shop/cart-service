@@ -19,10 +19,10 @@ logger = structlog.get_logger(__name__)
 
 
 class CartService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, product_client: ProductClient) -> None:
         self.session = session
         self.repo = CartRepository(session)
-        self.product_client = ProductClient()
+        self.product_client = product_client
 
     # ─── Public API (v1) ─────────────────────────────────────────
 

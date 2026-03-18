@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import structlog
+from contextlib import asynccontextmanager
+import httpx
 
 from src.api.v1.router import router as v1_router
 from src.api.internal.router import internal_router
@@ -9,16 +11,28 @@ from src.config import settings
 from src.logger import setup_logging, get_logger
 from src.middleware.request_logger import RequestLoggingMiddleware
 from src.exceptions import NotFoundException, ServiceUnavailableException
+from src.services.product_client import ProductClient
 
 logger = get_logger(__name__)
 
 setup_logging()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Инициализация HTTP клиента для Connection Pooling
+    http_client = httpx.AsyncClient(timeout=httpx.Timeout(timeout=10.0, connect=5.0))
+    app.state.product_client = ProductClient(http_client)
+    yield
+    await http_client.aclose()
+
 
 app = FastAPI(
     title="Cart Service",
     description="Microservice for shopping cart management and product synchronization",
     version="0.1.0",
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
