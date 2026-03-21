@@ -110,6 +110,15 @@ class CartRepository:
         await self.session.flush()
         return result.rowcount
 
+    async def delete_selected_items(self, user_id: uuid.UUID, items: list[int]):
+        query = delete(CartItemModel).where(
+            CartItemModel.user_id == user_id,
+            CartItemModel.product_id.in_(items),
+        )
+        result = await self.session.execute(query)
+        await self.session.flush()
+        return result.rowcount
+
     async def mark_price_changed(
         self,
         product_id: int,

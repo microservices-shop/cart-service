@@ -39,6 +39,7 @@ class Settings(BaseSettings):
         )
 
     PRODUCT_SERVICE_URL: str = ""
+    RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 

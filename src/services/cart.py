@@ -19,7 +19,9 @@ logger = structlog.get_logger(__name__)
 
 
 class CartService:
-    def __init__(self, session: AsyncSession, product_client: ProductClient) -> None:
+    def __init__(
+        self, session: AsyncSession, product_client: ProductClient | None = None
+    ) -> None:
         self.session = session
         self.repo = CartRepository(session)
         self.product_client = product_client
@@ -213,6 +215,11 @@ class CartService:
             user_id=str(user_id),
             item_id=str(item_id),
         )
+
+    async def delete_selected_items(self, user_id: uuid.UUID, items: list[int]) -> int:
+        deleted_count = await self.repo.delete_selected_items(user_id, items)
+        await self.session.commit()
+        return deleted_count
 
     async def clear_cart(self, user_id: uuid.UUID) -> None:
         """Очистить всю корзину пользователя."""
