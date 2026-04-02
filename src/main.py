@@ -12,22 +12,20 @@ from src.logger import setup_logging, get_logger
 from src.middleware.request_logger import RequestLoggingMiddleware
 from src.exceptions import NotFoundException, ServiceUnavailableException
 from src.services.product_client import ProductClient
-from src.messaging.broker import broker
+from src.messaging.broker import broker, connect_broker
 from src.messaging.consumer import router as messaging_router
 
-logger = get_logger(__name__)
-
 setup_logging()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await connect_broker()
+
     # Инициализация HTTP клиента для Connection Pooling
     http_client = httpx.AsyncClient(timeout=httpx.Timeout(timeout=10.0, connect=5.0))
     app.state.product_client = ProductClient(http_client)
-
-    await broker.connect()
-    await broker.start()
 
     yield
 
